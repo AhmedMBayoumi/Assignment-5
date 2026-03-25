@@ -10,7 +10,7 @@ class SimpleMLP(nn.Module):
     def __init__(self):
         super(SimpleMLP, self).__init__()
         self.flatten = nn.Flatten()
-        self.fc1 = nn.Linear(3072, 512)
+        self.fc1 = nn.Linear(28*28, 512)
         self.fc2 = nn.Linear(512, 128)
         self.fc3 = nn.Linear(128, 10)
         self.relu = nn.ReLU()
@@ -24,19 +24,20 @@ class SimpleMLP(nn.Module):
 
 def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    
+    # Load MNIST
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
-    trainset = torchvision.datasets.CIFAR10(root='./data', train=True, download=False, transform=transform)
+    trainset = torchvision.datasets.MNIST(root='./data', train=True, download=False, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
     
     model = SimpleMLP().to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.01)
 
-    mlflow.set_experiment("CIFAR-10 Training")
+    mlflow.set_experiment("MNIST Training")
     with mlflow.start_run() as run:
+        # Log params
         mlflow.log_param("model_type", "3-layer MLP")
-        mlflow.log_param("dataset", "CIFAR-10")
+        mlflow.log_param("dataset", "MNIST")
         
         model.train()
         correct = 0
