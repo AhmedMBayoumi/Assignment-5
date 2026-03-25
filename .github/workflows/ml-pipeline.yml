@@ -1,0 +1,67 @@
+name: ML Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: pip install dvc mlflow torch torchvision
+        
+      - name: Pull Data
+        run: dvc pull
+        
+      - name: Train model and log to MLflow
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: python train.py
+        
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-artifacts
+          path: model_info.txt 
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          
+      - name: Install dependencies
+        run: pip install mlflow 
+          
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: pipeline-artifacts
+          path: .
+          
+      - name: Check model threshold
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        run: python check_threshold.py 
+        
+      - name: Mock Build Docker Image
+        run: |
+          RUN_ID=$(cat model_info.txt)
+          echo "Building Docker image for Run ID: $(cat model_info.txt)"
+          docker build --build-arg RUN_ID=$RUN_ID -t my-model:$RUN_ID .
