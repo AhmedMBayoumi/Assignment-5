@@ -33,34 +33,44 @@ def train():
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.SGD(model.parameters(), lr=0.01)
 
+    tracking_uri = os.getenv("MLFLOW_TRACKING_URI")
+    if tracking_uri:
+        mlflow.set_tracking_uri(tracking_uri)
+
     mlflow.set_experiment("MNIST Training")
     with mlflow.start_run() as run:
         # Log params
         mlflow.log_param("model_type", "3-layer MLP")
         mlflow.log_param("dataset", "MNIST")
         
-        model.train()
-        correct = 0
-        total = 0
-        running_loss = 0.0
+        # Control training epochs
+        epochs = 1
+        mlflow.log_param("epochs", epochs)
         
-        for i, data in enumerate(trainloader, 0):
-            if i >= 100: break 
-            inputs, labels = data[0].to(device), data[1].to(device)
-            optimizer.zero_grad()
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-            loss.backward()
-            optimizer.step()
+        model.train()
+        for epoch in range(epochs):
+            correct = 0
+            total = 0
+            running_loss = 0.0
             
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-            running_loss += loss.item()
+            for i, data in enumerate(trainloader, 0):
+                if i >= 100: break # Training on a subset 
+                inputs, labels = data[0].to(device), data[1].to(device)
+                optimizer.zero_grad()
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+                loss.backward()
+                optimizer.step()
+                
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                running_loss += loss.item()
 
-        accuracy = correct / total
-        mlflow.log_metric("accuracy", accuracy)
-        mlflow.log_metric("loss", running_loss / 100)
+            accuracy = correct / total
+            mlflow.log_metric("accuracy", accuracy, step=epoch)
+            mlflow.log_metric("loss", running_loss / 100, step=epoch)
+            print(f"Epoch {epoch+1}/{epochs} - Accuracy: {accuracy:.4f}, Loss: {running_loss/100:.4f}")
         
         
         with open("model_info.txt", "w") as f:
