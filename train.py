@@ -6,7 +6,7 @@ import torchvision.transforms as transforms
 import mlflow
 import os
 
-class SimpleMLP(nn.Module):
+class SimpleMLP(nn.Module): 
     def __init__(self):
         super(SimpleMLP, self).__init__()
         self.flatten = nn.Flatten()
@@ -24,7 +24,6 @@ class SimpleMLP(nn.Module):
 
 def train():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    # Load MNIST
     transform = transforms.Compose([transforms.ToTensor(), transforms.Normalize((0.5,), (0.5,))])
     trainset = torchvision.datasets.MNIST(root='./data', train=True, download=False, transform=transform)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
