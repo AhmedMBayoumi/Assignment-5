@@ -27,7 +27,6 @@ def check_threshold():
             
         print(f"Model Accuracy: {accuracy}")
         
-        # 3. Check against threshold 0.85
         threshold = 0.85
         if accuracy < threshold:
             print(f"Failing: Accuracy {accuracy} is below threshold {threshold}")
